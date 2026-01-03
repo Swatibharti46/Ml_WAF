@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { TrafficLog, AnomalyInsight, TrafficType } from '../types';
 import { analyzeAnomaly } from '../services/geminiService';
@@ -12,7 +11,8 @@ import {
   ShieldCheck,
   RefreshCcw,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Loader2
 } from 'lucide-react';
 
 interface AnomalyAnalysisProps {
@@ -42,14 +42,14 @@ const AnomalyAnalysis: React.FC<AnomalyAnalysisProps> = ({ logs, onFeedback }) =
   const handleFeedback = (type: 'CONFIRMED' | 'FALSE_POSITIVE') => {
     if (!selectedLog) return;
     onFeedback(selectedLog.id, type);
-    // Visual feedback transition
-    alert(`Feedback Received: Model will retrain using this input to reduce false positives.`);
+    // In a real app, this would be a toast notification
+    console.log(`Feedback Received: ${type}`);
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full animate-in fade-in slide-in-from-right-4 duration-500">
       {/* Left List */}
-      <div className="space-y-6 flex flex-col h-full">
+      <div className="space-y-6 flex flex-col h-full overflow-hidden">
         <div>
           <h2 className="text-2xl font-bold mb-1">Threat Intelligence</h2>
           <p className="text-slate-400 text-sm">Deep analysis of anomalies using Explainable AI.</p>
@@ -102,7 +102,7 @@ const AnomalyAnalysis: React.FC<AnomalyAnalysisProps> = ({ logs, onFeedback }) =
       </div>
 
       {/* Right Detail */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col h-full overflow-y-auto scrollbar-hide">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col h-full overflow-y-auto">
         {!selectedLog ? (
           <div className="flex flex-col items-center justify-center flex-1 text-slate-500 text-center space-y-4">
             <BrainCircuit size={64} className="text-slate-800 animate-pulse" />
@@ -123,13 +123,15 @@ const AnomalyAnalysis: React.FC<AnomalyAnalysisProps> = ({ logs, onFeedback }) =
               <div className="flex gap-2">
                  <button 
                   onClick={() => handleFeedback('FALSE_POSITIVE')}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition-colors title='False Positive'"
+                  className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"
+                  title="Mark as False Positive"
                 >
                   <ThumbsDown size={18} />
                 </button>
                 <button 
                    onClick={() => handleFeedback('CONFIRMED')}
-                  className="p-2 bg-indigo-600/20 hover:bg-indigo-600/40 rounded-lg text-indigo-400 transition-colors title='Confirm Threat'"
+                  className="p-2 bg-indigo-600/20 hover:bg-indigo-600/40 rounded-lg text-indigo-400 transition-colors"
+                  title="Confirm Threat"
                 >
                   <ThumbsUp size={18} />
                 </button>
@@ -140,11 +142,11 @@ const AnomalyAnalysis: React.FC<AnomalyAnalysisProps> = ({ logs, onFeedback }) =
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center gap-2">
                 <BrainCircuit size={14} /> AI Reasoning (Explainability)
               </h4>
-              <div className="bg-indigo-900/10 border border-indigo-500/20 p-5 rounded-xl">
+              <div className="bg-indigo-900/10 border border-indigo-500/20 p-5 rounded-xl min-h-[100px] flex flex-col justify-center">
                 {loading ? (
-                  <div className="space-y-3">
-                    <div className="h-4 bg-indigo-500/10 animate-pulse rounded w-3/4"></div>
-                    <div className="h-4 bg-indigo-500/10 animate-pulse rounded w-1/2"></div>
+                  <div className="flex items-center gap-3 text-indigo-400 text-sm font-medium">
+                    <Loader2 size={18} className="animate-spin" />
+                    Generative Engine is processing threat vectors...
                   </div>
                 ) : insight ? (
                   <p className="text-sm leading-relaxed text-indigo-100 italic">
@@ -165,6 +167,13 @@ const AnomalyAnalysis: React.FC<AnomalyAnalysisProps> = ({ logs, onFeedback }) =
                   <pre className="text-[11px] font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap">
                     {insight.suggestedRule}
                   </pre>
+                </div>
+                <div className="flex flex-wrap gap-2 py-2">
+                  {insight.reasoningVector.map((tag, i) => (
+                    <span key={i} className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
                 <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
                   <CheckCircle2 size={18} /> Approve & Sync with WAF

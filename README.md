@@ -1,24 +1,20 @@
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-# Swavlamban Sentinel: ML-Enabled Network Anomaly Detection
+# Run and deploy your AI Studio app
 
-**Challenge #3: Development of a Machine Learning Enabled Network Anomaly Detection Module**
+This contains everything you need to run your app locally.
 
-## 🚀 Deployment Overview
-This module is designed for real-time network traffic inspection, behavioral baselining, and automated WAF rule generation. It utilizes **Gemini 3 Pro** for high-fidelity explainable AI insights.
+View your app in AI Studio: https://ai.studio/apps/drive/1BAkL7z5PkGg3E5qQqx2c8HGjHOEGtwD4
 
-### Build & Run
-1. **Environment**: Add `API_KEY` (Google AI Studio) to your Vercel Environment Variables.
-2. **Install**: `npm install`
-3. **Run**: `npm run dev`
-4. **Build**: `npm run build`
+## Run Locally
 
-## 🛠 Features
-- **Real-time Ingestion**: Polls external WAF endpoints or accepts manual JSON log imports.
-- **Behavioral Baselining**: Learns 'Normal' traffic patterns to identify Zero-Day deviations.
-- **Explainable AI (XAI)**: Provides human-readable reasoning for every detection.
-- **Automated Mitigation**: Generates ModSecurity/AWS WAF compatible rules.
+**Prerequisites:**  Node.js
 
-## 📁 Directory Structure
-- `components/`: UI Modules (Dashboard, Metrics, Analyzers)
-- `services/`: Core logic (ML Interface, Traffic Simulator, API Ingestion)
-- `types.ts`: TypeScript interfaces for security data models.
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
