@@ -1,0 +1,5 @@
+{
+  "name": "Swavlamban Sentinel: ML-WAF Anomaly Detection",
+  "description": "A high-performance machine learning-enabled network anomaly detection module designed for modern WAF integration. It features real-time traffic baselining, behavioral analysis, explainable AI insights, and automated security rule generation.",
+  "requestFramePermissions": []
+}
