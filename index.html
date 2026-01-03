@@ -14,6 +14,17 @@
       ::-webkit-scrollbar-track { background: #0f172a; }
       ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
       ::-webkit-scrollbar-thumb:hover { background: #475569; }
+      
+      @keyframes scan {
+        0% { transform: translateY(-100%); opacity: 0; }
+        50% { opacity: 0.5; }
+        100% { transform: translateY(100%); opacity: 0; }
+      }
+      .scanner-line {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #6366f1, transparent);
+        animation: scan 2s linear infinite;
+      }
     </style>
 <script type="importmap">
 {

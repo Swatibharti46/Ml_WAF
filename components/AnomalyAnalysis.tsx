@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { TrafficLog, AnomalyInsight } from '../types';
 import { 
-  Terminal, BrainCircuit, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown, Loader2, ShieldCheck
+  Terminal, BrainCircuit, AlertCircle, CheckCircle2, ThumbsUp, ThumbsDown, Loader2, ShieldCheck, Database, Cpu
 } from 'lucide-react';
+import { analyzeAnomaly } from '../services/geminiService';
 
 interface AnomalyAnalysisProps {
   logs: TrafficLog[];
@@ -13,19 +14,32 @@ const AnomalyAnalysis: React.FC<AnomalyAnalysisProps> = ({ logs, onFeedback }) =
   const [selectedLog, setSelectedLog] = useState<TrafficLog | null>(null);
   const [insight, setInsight] = useState<AnomalyInsight | null>(null);
   const [loading, setLoading] = useState(false);
+  const [analysisSource, setAnalysisSource] = useState<'server' | 'client'>('server');
 
   const handleAnalyze = async (log: TrafficLog) => {
     setSelectedLog(log);
     setLoading(true);
     setInsight(null);
     try {
+      // Attempt server-side forensic analysis
       const res = await fetch(`/api/analyze/${log.id}`, { method: 'POST' });
       if (res.ok) {
         const result = await res.json();
         setInsight(result);
+        setAnalysisSource('server');
+      } else {
+        throw new Error("Server analysis unavailable");
       }
     } catch (err) {
-      console.error("Forensic analysis failed:", err);
+      // Fallback to client-side direct Gemini call if server is down
+      console.warn("Server forensic engine unreachable. Switching to client-side ML processing.");
+      try {
+        const result = await analyzeAnomaly(log);
+        setInsight(result);
+        setAnalysisSource('client');
+      } catch (clientErr) {
+        console.error("Critical: All ML forensic engines offline", clientErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -81,7 +95,7 @@ const AnomalyAnalysis: React.FC<AnomalyAnalysisProps> = ({ logs, onFeedback }) =
         {!selectedLog ? (
           <div className="flex flex-col items-center justify-center flex-1 text-slate-600 text-center">
             <BrainCircuit size={64} className="mb-4 opacity-5" />
-            <p className="text-sm font-medium">Select an incident for server-side evaluation.</p>
+            <p className="text-sm font-medium">Select an incident for behavioral evaluation.</p>
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
@@ -96,17 +110,23 @@ const AnomalyAnalysis: React.FC<AnomalyAnalysisProps> = ({ logs, onFeedback }) =
             </div>
 
             <section className="bg-indigo-900/10 border border-indigo-500/20 p-5 rounded-xl">
-              <h4 className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <BrainCircuit size={14} /> Explainable Reasoning
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                  <BrainCircuit size={14} /> Explainable Reasoning
+                </h4>
+                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">
+                  {analysisSource === 'server' ? <Database size={10} /> : <Cpu size={10} />}
+                  {analysisSource === 'server' ? 'Server-Side ML' : 'Edge-Simulation ML'}
+                </div>
+              </div>
               {loading ? (
                 <div className="flex items-center gap-3 text-slate-500 text-sm italic">
-                  <Loader2 size={18} className="animate-spin text-indigo-500" /> Processing threat vectors via Gemini...
+                  <Loader2 size={18} className="animate-spin text-indigo-500" /> Querying Neural Threat Patterns...
                 </div>
               ) : insight ? (
                 <p className="text-sm leading-relaxed text-slate-300 italic">{insight.explanation}</p>
               ) : (
-                <p className="text-sm text-slate-600 italic">Awaiting API resolution...</p>
+                <p className="text-sm text-slate-600 italic">Forensic trace unavailable.</p>
               )}
             </section>
 
