@@ -1,6 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+// Use BrowserRouter instead of HashRouter for better compatibility in many web environments
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { 
   Shield, 
   Activity, 
@@ -12,7 +13,8 @@ import {
   Zap,
   Cpu,
   Terminal,
-  Layers
+  Layers,
+  Globe
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import TrafficMonitor from './components/TrafficMonitor';
@@ -22,27 +24,35 @@ import Baselining from './components/Baselining';
 import WafIntegration from './components/WafIntegration';
 import MetricsPanel from './components/MetricsPanel';
 import { TrafficLog } from './types';
-import { generateTraffic } from './services/trafficSimulator';
+import { fetchLiveLogs } from './services/dataIngestionService';
 
 const App: React.FC = () => {
   const [logs, setLogs] = useState<TrafficLog[]>([]);
   const [isLive, setIsLive] = useState(true);
+  const [wafEndpoint, setWafEndpoint] = useState<string>(''); // User can set this for real data
+
+  const ingestData = useCallback(async () => {
+    const newLogs = await fetchLiveLogs(wafEndpoint);
+    setLogs(prev => [...newLogs, ...prev].slice(0, 200));
+  }, [wafEndpoint]);
 
   useEffect(() => {
     if (!isLive) return;
-    const interval = setInterval(() => {
-      const newLog = generateTraffic();
-      setLogs(prev => [newLog, ...prev].slice(0, 100));
-    }, 2500);
+    const interval = setInterval(ingestData, wafEndpoint ? 5000 : 2500);
     return () => clearInterval(interval);
-  }, [isLive]);
+  }, [isLive, ingestData, wafEndpoint]);
+
+  const handleManualImport = (importedLogs: TrafficLog[]) => {
+    setLogs(prev => [...importedLogs, ...prev].slice(0, 500));
+    alert(`${importedLogs.length} logs imported successfully.`);
+  };
 
   const updateLogFeedback = (id: string, feedback: 'CONFIRMED' | 'FALSE_POSITIVE') => {
     setLogs(prev => prev.map(log => log.id === id ? { ...log, feedback } : log));
   };
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-200">
         {/* Sidebar */}
         <aside className="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col shrink-0">
@@ -74,11 +84,18 @@ const App: React.FC = () => {
           <div className="p-4 border-t border-slate-800">
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-slate-400">ML Engine</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-xs font-medium text-slate-400">Source</span>
+                <span className={`text-[10px] font-bold uppercase ${wafEndpoint ? 'text-emerald-400' : 'text-amber-400'}`}>
+                   {wafEndpoint ? 'Live API' : 'Simulated'}
+                </span>
               </div>
-              <div className="text-sm font-semibold text-emerald-400">Active - v2.4.0</div>
-              <div className="mt-2 text-[10px] text-slate-500">Stability: Continuous</div>
+              <input 
+                type="text" 
+                placeholder="Log Endpoint URL..." 
+                className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                value={wafEndpoint}
+                onChange={(e) => setWafEndpoint(e.target.value)}
+              />
             </div>
           </div>
         </aside>
@@ -91,12 +108,16 @@ const App: React.FC = () => {
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input 
                   type="text" 
-                  placeholder="Search logs, IPs, or threat patterns..." 
+                  placeholder="Search live packets..." 
                   className="w-full bg-slate-800/50 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                 />
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 mr-4">
+                <Globe size={14} />
+                <span>Cloud Instance: sentinel-node-01</span>
+              </div>
               <button 
                 onClick={() => setIsLive(!isLive)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -104,10 +125,7 @@ const App: React.FC = () => {
                 }`}
               >
                 <Zap size={16} className={isLive ? 'animate-pulse' : ''} />
-                {isLive ? 'Monitoring' : 'System Paused'}
-              </button>
-              <button className="p-2 text-slate-400 hover:text-white transition-colors">
-                <Settings size={20} />
+                {isLive ? 'Monitoring' : 'Paused'}
               </button>
             </div>
           </header>
@@ -115,7 +133,7 @@ const App: React.FC = () => {
           <div className="flex-1 overflow-y-auto p-8 scroll-smooth">
             <Routes>
               <Route path="/" element={<Dashboard logs={logs} />} />
-              <Route path="/traffic" element={<TrafficMonitor logs={logs} />} />
+              <Route path="/traffic" element={<TrafficMonitor logs={logs} onImport={handleManualImport} />} />
               <Route path="/anomalies" element={<AnomalyAnalysis logs={logs.filter(l => l.type !== 'LEGITIMATE')} onFeedback={updateLogFeedback} />} />
               <Route path="/baselining" element={<Baselining logs={logs} />} />
               <Route path="/metrics" element={<MetricsPanel />} />
@@ -125,7 +143,7 @@ const App: React.FC = () => {
           </div>
         </main>
       </div>
-    </HashRouter>
+    </BrowserRouter>
   );
 };
 
